@@ -1,6 +1,6 @@
 # API REST de avistamientos de aves
 
-Trabajo en clase de Ingeniería de Software 2
+Trabajo de Ingeniería de Software 2
 
 API REST para registrar avistamientos de aves. Permite crear, consultar, actualizar y eliminar avistamientos. Los datos se guardan en una base de datos SQLite y la API recibe y responde en JSON.
 
