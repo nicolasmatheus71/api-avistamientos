@@ -64,10 +64,6 @@ python app.py
 
 La API queda disponible en `http://127.0.0.1:5000`. La base de datos (`avistamientos.db`) se crea sola la primera vez que se ejecuta.
 
-Si el puerto 5000 está ocupado (en macOS suele usarlo AirPlay), se puede usar otro puerto con la variable `PORT`:
-
-- Windows (PowerShell): `$env:PORT=5001; python app.py`
-- Linux o macOS: `PORT=5001 python app.py`
 
 ## Recurso: avistamiento
 
