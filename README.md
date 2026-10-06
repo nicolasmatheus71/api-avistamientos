@@ -220,4 +220,4 @@ api-avistamientos/
 
 ## Uso de inteligencia artificial
 
-Se usó IA como apoyo para planear y escribir el código: Claude (Anthropic), modelo Claude Sonnet 5.5. El autor revisó, probó y entiende el código entregado.
+Usé IA como apoyo para planear y escribir el código: Claude (Anthropic), modelo Sonnet 5.5. 
