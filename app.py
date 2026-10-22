@@ -1,36 +1,11 @@
 import os
-import re
-from datetime import datetime
 
 from flask import Flask, jsonify, request
 
 import database
+from validador import ValidadorDeAvistamiento
 
 CAMPOS = ("especie", "lugar", "fecha", "observador")
-
-
-def validar_datos(datos):
-    """Devuelve un mensaje de error si los datos no sirven, o None si están bien."""
-    if not isinstance(datos, dict):
-        return "El cuerpo debe ser un objeto JSON válido"
-
-    faltantes = [
-        campo
-        for campo in CAMPOS
-        if not isinstance(datos.get(campo), str) or not datos[campo].strip()
-    ]
-    if faltantes:
-        return "Faltan datos o están vacíos: " + ", ".join(faltantes)
-
-    fecha = datos["fecha"].strip()
-    if not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", fecha):
-        return "La fecha debe tener el formato AAAA-MM-DD"
-    try:
-        datetime.strptime(fecha, "%Y-%m-%d")
-    except ValueError:
-        return "La fecha no es válida"
-
-    return None
 
 
 def limpiar_datos(datos):
@@ -38,12 +13,20 @@ def limpiar_datos(datos):
     return {campo: datos[campo].strip() for campo in CAMPOS}
 
 
-def create_app(config=None):
+def respuesta_datos_invalidos(errores):
+    """Arma la respuesta 400 indicando qué campos fallaron y por qué."""
+    mensaje = "Datos inválidos en: " + ", ".join(errores)
+    return jsonify({"error": mensaje, "campos": errores}), 400
+
+
+def create_app(config=None, reloj=None):
     app = Flask(__name__)
-    app.json.ensure_ascii = False 
+    app.json.ensure_ascii = False  # para que se vean las tildes (colibrí)
     app.config["DATABASE"] = os.path.join(app.root_path, "avistamientos.db")
     if config:
         app.config.update(config)
+
+    validador = ValidadorDeAvistamiento(reloj)
 
     app.teardown_appcontext(database.close_db)
     with app.app_context():
@@ -67,9 +50,9 @@ def create_app(config=None):
     @app.post("/avistamientos")
     def registrar():
         datos = request.get_json(silent=True)
-        error = validar_datos(datos)
-        if error:
-            return jsonify({"error": error}), 400
+        errores = validador.validar(datos)
+        if errores:
+            return respuesta_datos_invalidos(errores)
         nuevo = database.crear_avistamiento(**limpiar_datos(datos))
         return jsonify(nuevo), 201
 
@@ -78,9 +61,9 @@ def create_app(config=None):
         if database.obtener_avistamiento(avistamiento_id) is None:
             return jsonify({"error": "Avistamiento no encontrado"}), 404
         datos = request.get_json(silent=True)
-        error = validar_datos(datos)
-        if error:
-            return jsonify({"error": error}), 400
+        errores = validador.validar(datos)
+        if errores:
+            return respuesta_datos_invalidos(errores)
         actualizado = database.actualizar_avistamiento(
             avistamiento_id, **limpiar_datos(datos)
         )
