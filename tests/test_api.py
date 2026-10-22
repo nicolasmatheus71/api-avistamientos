@@ -271,3 +271,32 @@ def test_metodo_no_permitido_responde_405_en_json(client):
     # Assert
     assert respuesta.status_code == 405
     assert "error" in respuesta.get_json()
+    
+
+    # ---------- Reloj real (sin stub) ----------
+
+
+@pytest.fixture
+def client_con_reloj_real(tmp_path):
+    """Cliente que usa el reloj del sistema, el mismo que se usa en producción."""
+    app = create_app({"DATABASE": str(tmp_path / "prueba.db"), "TESTING": True})
+    return app.test_client()
+
+
+def test_con_el_reloj_real_una_fecha_pasada_se_acepta(client_con_reloj_real):
+    # Arrange: el año 2000 siempre es anterior a hoy
+    datos = {**AVISTAMIENTO, "fecha": "2000-01-01"}
+    # Act
+    respuesta = client_con_reloj_real.post("/avistamientos", json=datos)
+    # Assert
+    assert respuesta.status_code == 201
+
+
+def test_con_el_reloj_real_una_fecha_muy_futura_se_rechaza(client_con_reloj_real):
+    # Arrange: el año 2999 siempre es posterior a hoy
+    datos = {**AVISTAMIENTO, "fecha": "2999-01-01"}
+    # Act
+    respuesta = client_con_reloj_real.post("/avistamientos", json=datos)
+    # Assert
+    assert respuesta.status_code == 400
+    assert set(respuesta.get_json()["campos"]) == {"fecha"}
