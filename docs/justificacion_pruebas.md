@@ -56,16 +56,59 @@ Particiones: válida (hoy o antes), futura, con formato incorrecto, imposible en
 
 ## 3. Por qué cada nivel
 
-(Pendiente)
+Usé dos niveles. El nivel unitario prueba una sola pieza, el validador, sin Flask ni base de datos. El nivel de integración prueba la API completa a través de HTTP, con la ruta, el validador y una base de datos SQLite temporal.
+
+**`test_fecha_de_manana_es_invalida_por_ser_posterior_a_hoy` (unitaria).** Es unitaria porque la regla "no puede ser posterior a hoy" está toda dentro del validador. No necesita HTTP ni base de datos, y con el reloj fijo se puede probar el valor límite exacto (el día siguiente a hoy). Es muy rápida y, si falla, se sabe que el problema está en el validador.
+
+**`test_registrar_guarda_el_avistamiento_y_se_puede_consultar_con_get` (integración).** Es de integración porque cruza varias fronteras: la petición HTTP, la ruta de Flask, el validador, la base de datos y la respuesta en JSON. Primero hace un POST y después un GET al id nuevo. Una prueba unitaria no puede comprobar que el avistamiento realmente se guardó ni que el id lo asignó la base de datos.
+
+**`test_registrar_con_especie_de_2_caracteres_responde_400_y_no_guarda` (integración).** Aquí está la diferencia que pide el taller. La prueba unitaria del validador solo sabe que, con una especie de 2 caracteres, el validador devuelve un error. No puede detectar que la ruta se olvide de llamar al validador, o que lo llame y ignore el resultado, y en esos casos la API respondería 201 y guardaría un dato inválido. La prueba de integración sí lo detecta, porque revisa que el código de estado sea 400 y que no se guarde nada.
+
+Como los casos límite ya están cubiertos a nivel unitario, en integración solo repetí un caso por cada comportamiento (por ejemplo, un solo caso de especie corta). Así evito pruebas duplicadas, más lentas y más difíciles de mantener.
 
 ## 4. Los dobles
 
-(Pendiente)
+Usé un doble: `RelojFijo`, que es un **stub**. Un stub solo devuelve respuestas fijas para controlar lo que entra a la pieza que se prueba. `RelojFijo.hoy()` siempre responde el 15 de junio de 2026. No es un mock, porque no verifico cuántas veces ni cómo se llamó al reloj. Tampoco es un fake, porque un fake tiene una implementación real simplificada (por ejemplo, un repositorio en memoria) y el reloj fijo no tiene ninguna lógica.
+
+El reloj se inyecta por el constructor de `ValidadorDeAvistamiento` y por `create_app(reloj=...)`. Por eso el mismo stub sirve en las pruebas unitarias y en las de integración.
+
+Sin el doble habría dos problemas. Si escribiera la fecha de mañana a mano ("2026-06-16"), la prueba pasaría hoy y fallaría cuando pase esa fecha, porque ya sería del pasado. Y si calculara "mañana" con `date.today()` dentro de la prueba, repetiría la misma lógica que quiero probar, y podría fallar justo a medianoche.
+
+No usé un doble para la base de datos. En las pruebas de integración quiero comprobar que la API habla con SQLite de verdad, por eso cada prueba usa un archivo temporal propio (`tmp_path`), que da independencia sin necesidad de un doble. Además, el proyecto no tiene capa de servicio ni de repositorio, así que no había dónde poner un fake sin crear código extra solo para eso.
+
+Hice además dos pruebas con el reloj real (sin stub), usando fechas del año 2000 y del 2999, que dan el mismo resultado cualquier día. Comprueban que, cuando no se pasa ningún reloj, la API usa de verdad el reloj del sistema.
 
 ## 5. Lo que no probé
 
-(Pendiente)
+1. **El arranque del servidor con `python app.py` y `create_app()` sin configuración.** La cobertura lo marca como la línea 90 y la rama 26->29 de `app.py`. No lo probé porque habría que levantar un servidor real y crear el archivo `avistamientos.db` del proyecto, y eso ensucia las pruebas y las hace menos independientes. Ya lo verifiqué a mano con los comandos curl del README. El costo es alto y el valor es bajo.
+2. **La rama defensiva de `actualizar_avistamiento`.** Es el `return None` de la línea 71 de `database.py`, que se ejecuta si el UPDATE no cambia ninguna fila. Por la API no se puede llegar ahí, porque la ruta comprueba antes que el avistamiento existe y responde 404. Probarla obligaría a llamar a la función directamente. Decidí no hacerlo; si algún día la ruta deja de comprobar la existencia, entonces sí haría falta.
+3. **Repetir en integración todos los casos límite de la especie y la fecha.** Ya están en las pruebas unitarias, que son más rápidas y precisas. Repetirlos por HTTP daría más pruebas pero no más información.
 
 ## 6. Lectura de la cobertura
 
-(Pendiente)
+Comando usado:
+
+```
+pytest --cov=app --cov=database --cov=validador --cov=reloj --cov-branch --cov-report=term-missing
+```
+
+Resultado final (38 pruebas pasan: 22 de integración y 16 unitarias):
+
+```
+Name           Stmts   Miss Branch BrPart  Cover   Missing
+----------------------------------------------------------
+app.py            64      1     14      2    96%   26->29, 90
+database.py       41      1      6      1    96%   71
+reloj.py           4      0      0      0   100%
+validador.py      40      0     18      0   100%
+----------------------------------------------------------
+TOTAL            149      2     38      3    97%
+```
+
+Medí cobertura de sentencias y también de ramas (`--cov-branch`), para ver si cada `if` se probó por sus dos caminos.
+
+En la primera medición, con 36 pruebas, `reloj.py` estaba en 75 %. La línea 8 (`return date.today()`) nunca se ejecutaba, porque todas las pruebas usaban el stub. Eso me mostró que probaba la lógica de la fecha, pero no la conexión con el reloj real. Escribí dos pruebas con el reloj real y `reloj.py` subió a 100 %.
+
+Los huecos que quedan son los tres de la sección 5, y decidí que no vale la pena cubrirlos. `validador.py`, que es donde está la regla de negocio, quedó al 100 % de sentencias y de ramas.
+
+Una cobertura alta no prueba que el código esté bien. Solo dice qué líneas se ejecutaron, no si las pruebas verifican algo. Por eso cada prueba tiene su `assert` sobre el comportamiento y no solo sobre el código de estado.
