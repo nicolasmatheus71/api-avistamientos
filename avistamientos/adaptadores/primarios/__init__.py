@@ -1,0 +1,1 @@
+"""Adaptadores primarios: los que usan la aplicación (la API web con Flask)."""

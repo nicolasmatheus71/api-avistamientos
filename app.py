@@ -1,69 +1,35 @@
+"""Punto de arranque: arma el hexágono conectando cada puerto con su adaptador.
+
+Es el único archivo que conoce a la vez la aplicación y todas las tecnologías.
+Si mañana se cambia SQLite por otra base de datos, solo cambia este archivo y el
+adaptador nuevo.
+"""
+
 import os
 
-from flask import Flask, jsonify, request
-
+from avistamientos.adaptadores.primarios.api_flask import crear_app_flask
 from avistamientos.adaptadores.secundarios.reloj_sistema import RelojSistema
 from avistamientos.adaptadores.secundarios.repositorio_sqlite import RepositorioSqlite
-from avistamientos.aplicacion.errores import AvistamientoNoEncontrado, DatosInvalidos
 from avistamientos.aplicacion.servicio import ServicioDeAvistamientos
+
+CARPETA = os.path.dirname(os.path.abspath(__file__))
 
 
 def create_app(config=None, reloj=None):
-    app = Flask(__name__)
-    app.json.ensure_ascii = False  # para que se vean las tildes (colibrí)
-    app.config["DATABASE"] = os.path.join(app.root_path, "avistamientos.db")
+    configuracion = {"DATABASE": os.path.join(CARPETA, "avistamientos.db")}
     if config:
-        app.config.update(config)
+        configuracion.update(config)
 
-    repositorio = RepositorioSqlite(app.config["DATABASE"])
+    # Adaptadores secundarios (lo que la aplicación usa)
+    repositorio = RepositorioSqlite(configuracion["DATABASE"])
     repositorio.crear_tabla()
-    servicio = ServicioDeAvistamientos(repositorio, reloj or RelojSistema())
+    reloj = reloj or RelojSistema()
 
-    @app.get("/avistamientos")
-    def listar():
-        return jsonify(servicio.listar()), 200
+    # La aplicación (el hexágono) recibe sus puertos secundarios ya conectados
+    servicio = ServicioDeAvistamientos(repositorio, reloj)
 
-    @app.get("/avistamientos/resumen")
-    def resumen():
-        return jsonify(servicio.resumen_por_especie()), 200
-
-    @app.get("/avistamientos/<int:avistamiento_id>")
-    def ver(avistamiento_id):
-        return jsonify(servicio.obtener(avistamiento_id)), 200
-
-    @app.post("/avistamientos")
-    def registrar():
-        datos = request.get_json(silent=True)
-        return jsonify(servicio.registrar(datos)), 201
-
-    @app.put("/avistamientos/<int:avistamiento_id>")
-    def actualizar(avistamiento_id):
-        datos = request.get_json(silent=True)
-        return jsonify(servicio.actualizar(avistamiento_id, datos)), 200
-
-    @app.delete("/avistamientos/<int:avistamiento_id>")
-    def eliminar(avistamiento_id):
-        servicio.eliminar(avistamiento_id)
-        return "", 204
-
-    @app.errorhandler(AvistamientoNoEncontrado)
-    def avistamiento_no_encontrado(error):
-        return jsonify({"error": "Avistamiento no encontrado"}), 404
-
-    @app.errorhandler(DatosInvalidos)
-    def datos_invalidos(error):
-        mensaje = "Datos inválidos en: " + ", ".join(error.errores)
-        return jsonify({"error": mensaje, "campos": error.errores}), 400
-
-    @app.errorhandler(404)
-    def ruta_no_encontrada(error):
-        return jsonify({"error": "Recurso no encontrado"}), 404
-
-    @app.errorhandler(405)
-    def metodo_no_permitido(error):
-        return jsonify({"error": "Método no permitido"}), 405
-
-    return app
+    # Adaptador primario (lo que usa la aplicación): la API web
+    return crear_app_flask(servicio, configuracion)
 
 
 if __name__ == "__main__":
