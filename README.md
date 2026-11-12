@@ -1,6 +1,6 @@
 # API REST de avistamientos de aves
 
-Trabajo de Ingeniería de Software 2 (ISW-2). En la Sesión 17 se construyó la API y en la Sesión 22 se le escribieron pruebas unitarias y de integración.
+Trabajo de Ingeniería de Software 2 (ISW-2). En la Sesión 17 se construyó la API, en la Sesión 22 se le escribieron pruebas unitarias y de integración, y en el Taller 5 se reorganizó con arquitectura hexagonal (puertos y adaptadores).
 
 API REST para registrar avistamientos de aves. Permite crear, consultar, actualizar y eliminar avistamientos. Los datos se guardan en una base de datos SQLite y la API recibe y responde en JSON.
 
@@ -202,7 +202,12 @@ El campo `campos` indica qué campo falló y por qué.
 
 ## Pruebas
 
-Hay 38 pruebas en la carpeta `tests/`: 16 unitarias (`test_validador.py`) y 22 de integración (`test_api.py`). Las unitarias prueban solo el validador y usan un reloj fijo (un stub) para que la fecha de hoy no cambie el resultado. Las de integración prueban la API completa por HTTP y cada una usa su propia base de datos SQLite temporal, así que son independientes.
+Hay 47 pruebas en la carpeta `tests/`:
+
+- `test_validador.py`: 16 unitarias del validador, con un reloj fijo (un stub) para que la fecha de hoy no cambie el resultado.
+- `test_api.py`: 22 de integración que prueban la API completa por HTTP; cada una usa su propia base de datos SQLite temporal.
+- `test_servicio.py`: 8 unitarias del servicio, sin Flask y sin SQLite, con un repositorio en memoria (un fake).
+- `test_arquitectura.py`: 1 prueba que revisa que el hexágono (`avistamientos/aplicacion/`) no importe Flask, SQLite ni los adaptadores.
 
 Con el entorno virtual activo:
 
@@ -212,39 +217,50 @@ Correr todas las pruebas:
 pytest
 ```
 
-Correr solo las unitarias o solo las de integración:
-
-```
-pytest tests/test_validador.py
-pytest tests/test_api.py
-```
-
 Generar el reporte de cobertura (de sentencias y de ramas):
 
 ```
-pytest --cov=app --cov=database --cov=validador --cov=reloj --cov-branch --cov-report=term-missing
+pytest --cov=app --cov=avistamientos --cov-branch --cov-report=term-missing
 ```
 
-La cobertura total es del 97 %. La regla de negocio (`validador.py`) y el reloj (`reloj.py`) están al 100 %.
+La cobertura total es del 98 %. La aplicación (`avistamientos/aplicacion/`) está al 100 %.
 
-La justificación de las pruebas (tabla de casos, niveles, dobles, lo que no se probó y lectura de la cobertura) está en `docs/justificacion_pruebas.md`.
+La justificación de las pruebas está en `docs/justificacion_pruebas.md` y el documento del Taller 5 (arquitectura hexagonal) en `docs/taller5_arquitectura_hexagonal.md`.
+
+## Arquitectura
+
+El código sigue la arquitectura hexagonal (puertos y adaptadores) de Alistair Cockburn. La aplicación está en el centro y no conoce Flask ni SQLite; se comunica con el exterior por puertos (interfaces) que implementan los adaptadores.
+
+![Diagrama de dependencias](docs/diagrama_dependencias.png)
 
 ## Estructura del proyecto
 
 ```
 api-avistamientos/
-├── app.py              # Rutas de la API
-├── database.py         # Conexión y consultas a SQLite
-├── validador.py        # Regla de negocio: validación del avistamiento
-├── reloj.py            # Reloj del sistema (se puede reemplazar en las pruebas)
-├── requirements.txt    # Dependencias
-├── pytest.ini          # Configuración de pytest
-├── ejemplos/           # JSON de ejemplo para los curl
+├── app.py                         # Arranque: conecta cada puerto con su adaptador
+├── avistamientos/
+│   ├── aplicacion/                # El hexágono (no importa Flask ni SQLite)
+│   │   ├── puertos.py             # Puerto primario y puertos secundarios
+│   │   ├── servicio.py            # ServicioDeAvistamientos (implementa el puerto primario)
+│   │   ├── validador.py           # Regla de negocio
+│   │   └── errores.py             # Errores de la aplicación
+│   └── adaptadores/
+│       ├── primarios/
+│       │   └── api_flask.py       # Rutas Flask
+│       └── secundarios/
+│           ├── repositorio_sqlite.py  # Guarda en SQLite
+│           └── reloj_sistema.py       # Fecha del computador
+├── scripts/
+│   └── muestra_api.py             # Peticiones fijas para comparar respuestas
+├── ejemplos/                      # JSON de ejemplo para los curl
 ├── docs/
-│   └── justificacion_pruebas.md
-└── tests/
-    ├── test_api.py         # Pruebas de integración
-    └── test_validador.py   # Pruebas unitarias
+│   ├── justificacion_pruebas.md
+│   ├── taller5_arquitectura_hexagonal.md
+│   ├── diagrama_dependencias.dot / .png
+│   └── evidencias/                # Pruebas, cobertura y API antes y después del refactor
+├── tests/
+├── requirements.txt
+└── pytest.ini
 ```
 
 ## Decisiones de diseño
@@ -252,10 +268,12 @@ api-avistamientos/
 - PUT reemplaza el avistamiento completo, por eso exige todos los campos.
 - DELETE responde 204 sin cuerpo.
 - Las consultas SQL usan parámetros (`?`) para evitar inyección SQL.
-- La validación vive en la clase `ValidadorDeAvistamiento`, separada de las rutas, y la usan POST y PUT.
-- La fecha de hoy se obtiene de un reloj que se pasa al validador, para poder reemplazarlo por uno fijo en las pruebas.
+- La validación vive en la clase `ValidadorDeAvistamiento`, dentro del hexágono, y la usa el servicio en POST y PUT.
+- La fecha de hoy llega por el puerto `Reloj`, para poder reemplazarlo por uno fijo en las pruebas.
+- El repositorio de SQLite no depende de Flask: abre y cierra una conexión por operación.
+- El servicio lanza errores sin HTTP (`AvistamientoNoEncontrado`, `DatosInvalidos`) y el adaptador de Flask los convierte en 404 y 400.
 - Los errores también se devuelven en JSON.
 
 ## Uso de inteligencia artificial
 
-Se usó IA como apoyo para planear y escribir el código y las pruebas: Claude (Anthropic), modelo Claude Sonnet 5.5.
+Se usó IA como apoyo para planear y escribir el código y las pruebas: Claude (Anthropic), modelo Claude Sonnet 5.5. En el Taller 5 también se usó Claude (Anthropic) para planear el refactor por pasos y revisar el documento.

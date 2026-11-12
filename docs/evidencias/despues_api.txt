@@ -1,0 +1,44 @@
+GET /avistamientos
+  -> 200 []
+
+POST /avistamientos con nuevo.json
+  -> 201 {"especie": "colibrí", "fecha": "2026-10-04", "id": 1, "lugar": "Bogotá", "observador": "Laura"}
+
+GET /avistamientos
+  -> 200 [{"especie": "colibrí", "fecha": "2026-10-04", "id": 1, "lugar": "Bogotá", "observador": "Laura"}]
+
+GET /avistamientos/1
+  -> 200 {"especie": "colibrí", "fecha": "2026-10-04", "id": 1, "lugar": "Bogotá", "observador": "Laura"}
+
+GET /avistamientos/999
+  -> 404 {"error": "Avistamiento no encontrado"}
+
+POST /avistamientos con incompleto.json
+  -> 400 {"campos": {"fecha": "es obligatoria", "lugar": "es obligatorio", "observador": "es obligatorio"}, "error": "Datos inválidos en: lugar, observador, fecha"}
+
+POST /avistamientos con esto no es json
+  -> 400 {"campos": {"cuerpo": "debe ser un objeto JSON válido"}, "error": "Datos inválidos en: cuerpo"}
+
+PUT /avistamientos/1 con actualizado.json
+  -> 200 {"especie": "águila", "fecha": "2026-10-05", "id": 1, "lugar": "Chingaza", "observador": "Laura"}
+
+PUT /avistamientos/999 con actualizado.json
+  -> 404 {"error": "Avistamiento no encontrado"}
+
+POST /avistamientos con nuevo.json
+  -> 201 {"especie": "colibrí", "fecha": "2026-10-04", "id": 2, "lugar": "Bogotá", "observador": "Laura"}
+
+GET /avistamientos/resumen
+  -> 200 [{"cantidad": 1, "especie": "colibrí"}, {"cantidad": 1, "especie": "águila"}]
+
+DELETE /avistamientos/1
+  -> 204 (sin cuerpo)
+
+DELETE /avistamientos/1
+  -> 404 {"error": "Avistamiento no encontrado"}
+
+GET /pajaros
+  -> 404 {"error": "Recurso no encontrado"}
+
+PATCH /avistamientos
+  -> 405 {"error": "Método no permitido"}

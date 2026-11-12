@@ -1,0 +1,43 @@
+// Diagrama de dependencias (arquitectura hexagonal).
+// Cada flecha va del que importa al importado: todas apuntan hacia el hexágono.
+// app.py (no se dibuja) conoce todas las piezas: solo las conecta al arrancar.
+// Para regenerar: dot -Tpng -Gdpi=150 docs/diagrama_dependencias.dot -o docs/diagrama_dependencias.png
+digraph G {
+    rankdir=LR;
+    fontname="Helvetica"; fontsize=12;
+    node [fontname="Helvetica", fontsize=11, shape=box, style="filled", fillcolor="#f5f5f5", color="#666666"];
+    edge [fontname="Helvetica", fontsize=9, color="#333333"];
+    nodesep=0.5; ranksep=0.8;
+
+    subgraph cluster_primarios {
+        label="Adaptadores primarios\n(usan la aplicación)"; style="dashed"; color="#999999";
+        flask [label="api_flask.py\n(Flask)"];
+        pruebas [label="pruebas\n(pytest)"];
+    }
+
+    subgraph cluster_hexagono {
+        label="Hexágono: avistamientos/aplicacion"; style="bold"; color="#000000";
+        pp [label="PuertoDeAvistamientos\n(puerto primario)", shape=box, style="rounded,bold,filled", fillcolor="#ffffff", color="#000000"];
+        servicio [label="ServicioDeAvistamientos\nValidadorDeAvistamiento\nerrores"];
+        pr [label="RepositorioDeAvistamientos\n(puerto secundario)", shape=box, style="rounded,bold,filled", fillcolor="#ffffff", color="#000000"];
+        reloj [label="Reloj\n(puerto secundario)", shape=box, style="rounded,bold,filled", fillcolor="#ffffff", color="#000000"];
+    }
+
+    subgraph cluster_secundarios {
+        label="Adaptadores secundarios\n(la aplicación los usa)"; style="dashed"; color="#999999";
+        sqlite [label="RepositorioSqlite\n(SQLite)"];
+        memoria [label="RepositorioEnMemoria\n(fake de pruebas)"];
+        relojsis [label="RelojSistema\n(reloj del computador)"];
+    }
+
+
+    flask -> pp [label="usa"];
+    pruebas -> pp [label="usa"];
+    pp -> servicio [dir=back, label="implementa"];
+    servicio -> pr [label="usa"];
+    servicio -> reloj [label="usa"];
+    pr -> sqlite [dir=back, label="implementa"];
+    pr -> memoria [dir=back, label="implementa"];
+    reloj -> relojsis [dir=back, label="implementa"];
+
+}
