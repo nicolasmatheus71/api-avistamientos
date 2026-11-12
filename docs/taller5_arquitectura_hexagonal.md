@@ -153,37 +153,11 @@ Las salidas completas están en `docs/evidencias/antes_pruebas_y_cobertura.txt` 
 
 ![Pruebas y cobertura antes del refactor](evidencias/antes_cobertura.png)
 
-```
-Name           Stmts   Miss Branch BrPart  Cover   Missing
-----------------------------------------------------------
-app.py            64      1     14      2    96%   26->29, 90
-database.py       41      1      6      1    96%   71
-reloj.py           4      0      0      0   100%
-validador.py      40      0     18      0   100%
-----------------------------------------------------------
-TOTAL            149      2     38      3    97%
-38 passed
-```
 
 **Cobertura después:**
 
 ![Pruebas y cobertura después del refactor](evidencias/despues_cobertura.png)
 
-```
-Name                                                          Stmts   Miss Branch BrPart  Cover   Missing
----------------------------------------------------------------------------------------------------------
-app.py                                                           17      1      4      2    86%   20->24, 36
-avistamientos/adaptadores/primarios/api_flask.py                 43      0      2      1    98%   15->18
-avistamientos/adaptadores/secundarios/reloj_sistema.py            5      0      0      0   100%
-avistamientos/adaptadores/secundarios/repositorio_sqlite.py      46      1      2      1    96%   84
-avistamientos/aplicacion/errores.py                               8      0      0      0   100%
-avistamientos/aplicacion/puertos.py                              30      0      0      0   100%
-avistamientos/aplicacion/servicio.py                             32      0      6      0   100%
-avistamientos/aplicacion/validador.py                            39      0     18      0   100%
----------------------------------------------------------------------------------------------------------
-TOTAL                                                           220      2     32      4    98%
-47 passed
-```
 
 (Se omiten los `__init__.py`, que están vacíos y al 100 %.) Las líneas sin cubrir son las mismas de antes, solo que cambiaron de archivo: en `app.py` la línea 36 es el `create_app().run(...)` que solo corre al iniciar el servidor a mano, y la rama `20->24` es cuando no se pasa configuración. En `repositorio_sqlite.py` la línea 84 es el `return None` de actualizar cuando el registro desapareció entre la consulta y el `UPDATE`, igual que la línea 71 de `database.py` antes.
 
