@@ -1,0 +1,60 @@
+﻿============================= test session starts =============================
+platform win32 -- Python 3.14.6, pytest-9.2.0, pluggy-1.7.0 -- C:\Users\aulainformatica\Downloads\api-avistamientos\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\aulainformatica\Downloads\api-avistamientos
+configfile: pytest.ini
+testpaths: tests
+plugins: cov-7.1.0
+collecting ... collected 38 items
+
+tests/test_api.py::test_listar_sin_avistamientos_responde_200_y_lista_vacia PASSED [  2%]
+tests/test_api.py::test_listar_responde_200_con_los_avistamientos_registrados PASSED [  5%]
+tests/test_api.py::test_ver_avistamiento_existente_responde_200_con_todos_sus_campos PASSED [  7%]
+tests/test_api.py::test_ver_avistamiento_inexistente_responde_404_con_mensaje PASSED [ 10%]
+tests/test_api.py::test_registrar_responde_201_con_el_avistamiento_creado PASSED [ 13%]
+tests/test_api.py::test_registrar_guarda_el_avistamiento_y_se_puede_consultar_con_get PASSED [ 15%]
+tests/test_api.py::test_registrar_con_datos_incompletos_responde_400_e_indica_los_campos PASSED [ 18%]
+tests/test_api.py::test_registrar_con_especie_de_2_caracteres_responde_400_y_no_guarda PASSED [ 21%]
+tests/test_api.py::test_registrar_con_fecha_de_manana_responde_400 PASSED [ 23%]
+tests/test_api.py::test_registrar_con_fecha_de_hoy_responde_201 PASSED   [ 26%]
+tests/test_api.py::test_registrar_con_cuerpo_que_no_es_json_responde_400 PASSED [ 28%]
+tests/test_api.py::test_actualizar_responde_200_con_los_datos_nuevos_y_los_guarda PASSED [ 31%]
+tests/test_api.py::test_actualizar_avistamiento_inexistente_responde_404 PASSED [ 34%]
+tests/test_api.py::test_actualizar_con_datos_invalidos_responde_400_y_no_cambia_el_registro PASSED [ 36%]
+tests/test_api.py::test_eliminar_responde_204_sin_cuerpo_y_el_avistamiento_deja_de_existir PASSED [ 39%]
+tests/test_api.py::test_eliminar_avistamiento_inexistente_responde_404 PASSED [ 42%]
+tests/test_api.py::test_resumen_cuenta_los_avistamientos_por_especie PASSED [ 44%]
+tests/test_api.py::test_resumen_sin_avistamientos_responde_200_y_lista_vacia PASSED [ 47%]
+tests/test_api.py::test_ruta_inexistente_responde_404_en_json PASSED     [ 50%]
+tests/test_api.py::test_metodo_no_permitido_responde_405_en_json PASSED  [ 52%]
+tests/test_api.py::test_con_el_reloj_real_una_fecha_pasada_se_acepta PASSED [ 55%]
+tests/test_api.py::test_con_el_reloj_real_una_fecha_muy_futura_se_rechaza PASSED [ 57%]
+tests/test_validador.py::test_avistamiento_con_todos_los_datos_correctos_es_valido PASSED [ 60%]
+tests/test_validador.py::test_especie_de_2_caracteres_es_invalida PASSED [ 63%]
+tests/test_validador.py::test_especie_de_3_caracteres_es_valida PASSED   [ 65%]
+tests/test_validador.py::test_especie_de_50_caracteres_es_valida PASSED  [ 68%]
+tests/test_validador.py::test_especie_de_51_caracteres_es_invalida PASSED [ 71%]
+tests/test_validador.py::test_especie_vacia_es_invalida_porque_es_obligatoria PASSED [ 73%]
+tests/test_validador.py::test_especie_se_mide_sin_los_espacios_de_los_extremos PASSED [ 76%]
+tests/test_validador.py::test_fecha_de_ayer_es_valida PASSED             [ 78%]
+tests/test_validador.py::test_fecha_de_hoy_es_valida PASSED              [ 81%]
+tests/test_validador.py::test_fecha_de_manana_es_invalida_por_ser_posterior_a_hoy PASSED [ 84%]
+tests/test_validador.py::test_fecha_con_formato_dia_mes_anio_es_invalida PASSED [ 86%]
+tests/test_validador.py::test_fecha_que_no_existe_en_el_calendario_es_invalida PASSED [ 89%]
+tests/test_validador.py::test_fecha_vacia_es_invalida_porque_es_obligatoria PASSED [ 92%]
+tests/test_validador.py::test_lugar_con_solo_espacios_es_invalido PASSED [ 94%]
+tests/test_validador.py::test_observador_vacio_es_invalido PASSED        [ 97%]
+tests/test_validador.py::test_cuerpo_que_no_es_un_objeto_json_es_invalido PASSED [100%]
+
+=============================== tests coverage ================================
+_______________ coverage: platform win32, python 3.14.6-final-0 _______________
+
+Name           Stmts   Miss Branch BrPart  Cover   Missing
+----------------------------------------------------------
+app.py            64      1     14      2    96%   26->29, 90
+database.py       41      1      6      1    96%   71
+reloj.py           4      0      0      0   100%
+validador.py      40      0     18      0   100%
+----------------------------------------------------------
+TOTAL            149      2     38      3    97%
+============================= 38 passed in 0.83s ==============================
