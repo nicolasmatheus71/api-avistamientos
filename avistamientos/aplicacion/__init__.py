@@ -1,0 +1,1 @@
+"""El hexágono: la aplicación y sus puertos. No importa nada de Flask ni de SQLite."""

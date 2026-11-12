@@ -3,7 +3,8 @@ import os
 from flask import Flask, jsonify, request
 
 import database
-from validador import ValidadorDeAvistamiento
+from avistamientos.aplicacion.validador import ValidadorDeAvistamiento
+from reloj import RelojSistema
 
 CAMPOS = ("especie", "lugar", "fecha", "observador")
 
@@ -26,7 +27,7 @@ def create_app(config=None, reloj=None):
     if config:
         app.config.update(config)
 
-    validador = ValidadorDeAvistamiento(reloj)
+    validador = ValidadorDeAvistamiento(reloj or RelojSistema())
 
     app.teardown_appcontext(database.close_db)
     with app.app_context():

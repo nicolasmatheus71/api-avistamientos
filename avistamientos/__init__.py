@@ -1,0 +1,1 @@
+"""API de avistamientos organizada con arquitectura hexagonal (puertos y adaptadores)."""

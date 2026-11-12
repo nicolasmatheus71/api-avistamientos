@@ -2,8 +2,7 @@ from datetime import date
 
 import pytest
 
-from validador import ValidadorDeAvistamiento
-
+from avistamientos.aplicacion.validador import ValidadorDeAvistamiento
 
 class RelojFijo:
     """Stub: un reloj que siempre responde la misma fecha."""
