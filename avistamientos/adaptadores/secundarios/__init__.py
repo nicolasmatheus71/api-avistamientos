@@ -1,0 +1,1 @@
+"""Adaptadores secundarios: los que la aplicación usa (base de datos, reloj)."""

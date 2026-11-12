@@ -2,9 +2,9 @@ import os
 
 from flask import Flask, jsonify, request
 
-import database
+from avistamientos.adaptadores.secundarios.reloj_sistema import RelojSistema
+from avistamientos.adaptadores.secundarios.repositorio_sqlite import RepositorioSqlite
 from avistamientos.aplicacion.validador import ValidadorDeAvistamiento
-from reloj import RelojSistema
 
 CAMPOS = ("especie", "lugar", "fecha", "observador")
 
@@ -28,22 +28,20 @@ def create_app(config=None, reloj=None):
         app.config.update(config)
 
     validador = ValidadorDeAvistamiento(reloj or RelojSistema())
-
-    app.teardown_appcontext(database.close_db)
-    with app.app_context():
-        database.init_db()
+    repositorio = RepositorioSqlite(app.config["DATABASE"])
+    repositorio.crear_tabla()
 
     @app.get("/avistamientos")
     def listar():
-        return jsonify(database.listar_avistamientos()), 200
+        return jsonify(repositorio.listar()), 200
 
     @app.get("/avistamientos/resumen")
     def resumen():
-        return jsonify(database.resumen_por_especie()), 200
+        return jsonify(repositorio.resumen_por_especie()), 200
 
     @app.get("/avistamientos/<int:avistamiento_id>")
     def ver(avistamiento_id):
-        avistamiento = database.obtener_avistamiento(avistamiento_id)
+        avistamiento = repositorio.obtener(avistamiento_id)
         if avistamiento is None:
             return jsonify({"error": "Avistamiento no encontrado"}), 404
         return jsonify(avistamiento), 200
@@ -54,25 +52,23 @@ def create_app(config=None, reloj=None):
         errores = validador.validar(datos)
         if errores:
             return respuesta_datos_invalidos(errores)
-        nuevo = database.crear_avistamiento(**limpiar_datos(datos))
+        nuevo = repositorio.crear(limpiar_datos(datos))
         return jsonify(nuevo), 201
 
     @app.put("/avistamientos/<int:avistamiento_id>")
     def actualizar(avistamiento_id):
-        if database.obtener_avistamiento(avistamiento_id) is None:
+        if repositorio.obtener(avistamiento_id) is None:
             return jsonify({"error": "Avistamiento no encontrado"}), 404
         datos = request.get_json(silent=True)
         errores = validador.validar(datos)
         if errores:
             return respuesta_datos_invalidos(errores)
-        actualizado = database.actualizar_avistamiento(
-            avistamiento_id, **limpiar_datos(datos)
-        )
+        actualizado = repositorio.actualizar(avistamiento_id, limpiar_datos(datos))
         return jsonify(actualizado), 200
 
     @app.delete("/avistamientos/<int:avistamiento_id>")
     def eliminar(avistamiento_id):
-        if not database.eliminar_avistamiento(avistamiento_id):
+        if not repositorio.eliminar(avistamiento_id):
             return jsonify({"error": "Avistamiento no encontrado"}), 404
         return "", 204
 

@@ -1,0 +1,1 @@
+"""Adaptadores: conectan cada puerto del hexágono con una tecnología concreta."""
